@@ -1351,8 +1351,7 @@ def render_password_vault():
     # AI check button
     if st.button("🤖 AI Password Safety Check", key="ai_pw_check"):
         with st.spinner("Analyzing password strength..."):
-            pws = [v.get("password_hint", "") for v in st.session_state.vault_items]
-            report = ai_password_check(pws)
+          report = ai_password_check(st.session_state.vault_items)
         st.markdown(f'<div class="glass-card"><strong>🛡️ AI Safety Report</strong><br><br>{report}</div>', unsafe_allow_html=True)
 
     # Add new item
