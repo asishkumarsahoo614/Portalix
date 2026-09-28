@@ -184,14 +184,28 @@ def ai_parse_reminder(text: str) -> dict:
         pass
     return {"message": text, "datetime": "", "display": "Could not parse time"}
 
-def ai_password_check(passwords: list) -> str:
-    if not passwords:
-        return "No passwords to check."
+def ai_password_check(vault_items: list) -> str:
+    if not vault_items:
+        return "No credentials in the vault to analyze. Add some entries first!"
+
+    summary_lines = []
+    for item in vault_items:
+        site = item.get("site", "Unknown")
+        strength = item.get("strength", "Unknown")
+        # Check password length by decrypting locally without sending plain text to the API
+        try:
+            pw_len = len(decrypt_text(item.get("password_enc", "")))
+        except Exception:
+            pw_len = "unknown"
+        summary_lines.append(f"- Site: {site}, Strength Rating: {strength}, Character Length: {pw_len}")
+
+    data_summary = "\n".join(summary_lines)
     prompt = (
-        f"Check these {len(passwords)} password entries for security issues.\n"
-        "Look for: weak passwords (too short, common words), duplicates, patterns.\n"
-        "Passwords (hashed for safety, just count them): " + str(len(passwords)) + " entries.\n"
-        "Provide a brief 2-3 sentence security assessment and 1-2 actionable recommendations."
+        "You are an automated security auditor reviewing password metadata for a user's vault.\n"
+        "Here is the anonymized metadata summary of their saved credentials:\n"
+        f"{data_summary}\n\n"
+        "Analyze this metadata for security risks (e.g. short lengths, weak strength ratings, lack of variety). "
+        "Provide a brief 2-3 sentence assessment and 1-2 actionable security recommendations."
     )
     return gemini_ask(prompt, fallback="AI password check unavailable.")
 
