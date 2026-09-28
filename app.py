@@ -114,18 +114,39 @@ def get_gemini_client():
     except Exception:
         return None
 
+import time
+
 def gemini_ask(prompt: str, fallback: str = "AI unavailable.") -> str:
     client = get_gemini_client()
     if not client:
         return fallback
-    try:
-        response = client.models.generate_content(
-            model="gemini-3.5-flash-lite",
-            contents=prompt,
-        )
-        return response.text.strip()
-    except Exception as e:
-        return f"{fallback} (Error: {e})"
+
+    # Cycle through stable endpoints if one suffers a 503 load spike
+    models_to_try = [
+        "gemini-2.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite"
+    ]
+
+    last_error = ""
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
+            if response and response.text:
+                return response.text.strip()
+        except Exception as e:
+            last_error = str(e)
+            # If server has a 503 spike, pause briefly and try the next model
+            if "503" in last_error or "UNAVAILABLE" in last_error:
+                time.sleep(1)
+                continue
+            # If it's a quota or other hard error, try alternative models as well
+            continue
+
+    return f"{fallback} (Error: {last_error})"
 
 def ai_summarize_url(url: str) -> dict:
     prompt = (
