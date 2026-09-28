@@ -120,7 +120,7 @@ def gemini_ask(prompt: str, fallback: str = "AI unavailable.") -> str:
         return fallback
     try:
         response = client.models.generate_content(
-            model=["gemini-3.5-flash-lite", "gemini-2.5-flash-lite"]
+            model="gemini-3.5-flash-lite",
             contents=prompt,
         )
         return response.text.strip()
